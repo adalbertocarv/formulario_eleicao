@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import '../services/location_service.dart';
-import '../services/api_service.dart';
-import 'form_controller.dart';
+import '../services/localizacao.dart';
+import '../services/formulario.dart';
+import '../controller/form_controller.dart';
 import 'package:google_fonts/google_fonts.dart';
+
+import '../services/token_service.dart';
 
 class FormWizard extends StatefulWidget {
   @override
@@ -45,7 +47,7 @@ class _FormWizardState extends State<FormWizard> with TickerProviderStateMixin {
   }
 
   Future<void> _carregarLocalizacao() async {
-    final pos = await LocationService.getCurrentLocation();
+    final pos = await Localizacao.getCurrentLocation();
     if (pos != null) {
       _dados.latitude = pos.latitude;
       _dados.longitude = pos.longitude;
@@ -105,11 +107,13 @@ class _FormWizardState extends State<FormWizard> with TickerProviderStateMixin {
     );
 
     // Processar envio
-    final sucesso = await ApiService.enviarFormulario(_dados.toJson());
-    
+    final token = await TokenService.getToken();
+    final sucesso =
+    await Formulario.enviarFormulario(_dados.toJson(), token ?? '');
+
     // Fechar diálogo de progresso
     Navigator.pop(context);
-    
+
     // Mostrar resultado
     showDialog(
       context: context,
@@ -145,8 +149,13 @@ class _FormWizardState extends State<FormWizard> with TickerProviderStateMixin {
         actions: [
           TextButton(
             onPressed: () {
-              Navigator.pop(context);
-              if (sucesso) Navigator.pop(context);
+              Navigator.of(context).pop();            // fecha o diálogo
+              if (sucesso) {
+                _controller.jumpToPage(0);           // volta à primeira pergunta
+                setState(() {
+                  _paginaAtual = 0;                  // reseta índice
+                });
+              }
             },
             style: TextButton.styleFrom(
               backgroundColor: sucesso ? Color(0xFF6C63FF) : Colors.grey[300],
@@ -217,43 +226,43 @@ class _FormWizardState extends State<FormWizard> with TickerProviderStateMixin {
         'nome': 'ALBERTO FRAGA',
         'partido': 'PL - DF',
         'imagem':
-            'https://storage-download.googleapis.com/politicos-bucket-org/a3f7959c-c4c6-4acd-9dd8-fa36b21fb4b3.jpg'
+        'https://storage-download.googleapis.com/politicos-bucket-org/a3f7959c-c4c6-4acd-9dd8-fa36b21fb4b3.jpg'
       },
       {
         'nome': 'BIA KICIS',
         'partido': 'PL - DF',
         'imagem':
-            'https://storage-download.googleapis.com/politicos-bucket-org/a675cbda-8d82-46f7-942e-b900a6ad7295.jpg'
+        'https://storage-download.googleapis.com/politicos-bucket-org/a675cbda-8d82-46f7-942e-b900a6ad7295.jpg'
       },
       {
         'nome': 'PROF. REGINALDO VERAS',
         'partido': 'PV - DF',
         'imagem':
-            'https://storage-download.googleapis.com/politicos-bucket-org/57b291a4-e55e-4a59-8bca-2ab8072ac2e7.jpg'
+        'https://storage-download.googleapis.com/politicos-bucket-org/57b291a4-e55e-4a59-8bca-2ab8072ac2e7.jpg'
       },
       {
         'nome': 'FRED LINHARES',
         'partido': 'REPUBLICANOS - DF',
         'imagem':
-            'https://storage-download.googleapis.com/politicos-bucket-org/5e1779b7-c6ba-409e-937c-642b986ca692.jpg'
+        'https://storage-download.googleapis.com/politicos-bucket-org/5e1779b7-c6ba-409e-937c-642b986ca692.jpg'
       },
       {
         'nome': 'RAFAEL PRUDENTE',
         'partido': 'MDB - DF',
         'imagem':
-            'https://storage-download.googleapis.com/politicos-bucket-org/3c1834a3-a3e9-46dd-8da9-11ab182bb014.jpg'
+        'https://storage-download.googleapis.com/politicos-bucket-org/3c1834a3-a3e9-46dd-8da9-11ab182bb014.jpg'
       },
       {
         'nome': 'GILVAN MAXIMO',
         'partido': 'REPUBLICANOS - DF',
         'imagem':
-            'https://storage-download.googleapis.com/politicos-bucket-org/932d8442-8431-44df-aabb-084d833034fb.jpg'
+        'https://storage-download.googleapis.com/politicos-bucket-org/932d8442-8431-44df-aabb-084d833034fb.jpg'
       },
       {
         'nome': 'JULIO CESAR RIBEIRO',
         'partido': 'REPUBLICANOS - DF',
         'imagem':
-            'https://storage-download.googleapis.com/politicos-bucket-org/b6da8e4d-5b2f-4747-8587-01ed6de993ab.jpg'
+        'https://storage-download.googleapis.com/politicos-bucket-org/b6da8e4d-5b2f-4747-8587-01ed6de993ab.jpg'
       },
     ];
 
@@ -271,13 +280,18 @@ class _FormWizardState extends State<FormWizard> with TickerProviderStateMixin {
               curve: Curves.easeOutQuint,
             )),
             child: Column(
-              children: ['Masculino', 'Feminino', 'Outro', 'Prefere não responder']
+              children: [
+                'Masculino',
+                'Feminino',
+                'Outro',
+                'Prefere não responder'
+              ]
                   .map((e) => _buildRadioOption(
-                        title: e,
-                        value: e,
-                        groupValue: _dados.sexo,
-                        onChanged: (val) => setState(() => _dados.sexo = val),
-                      ))
+                title: e,
+                value: e,
+                groupValue: _dados.sexo,
+                onChanged: (val) => setState(() => _dados.sexo = val),
+              ))
                   .toList(),
             ),
           ),
@@ -347,11 +361,11 @@ class _FormWizardState extends State<FormWizard> with TickerProviderStateMixin {
                 'Prefere não responder'
               ]
                   .map((e) => _buildRadioOption(
-                        title: e,
-                        value: e,
-                        groupValue: _dados.renda,
-                        onChanged: (val) => setState(() => _dados.renda = val),
-                      ))
+                title: e,
+                value: e,
+                groupValue: _dados.renda,
+                onChanged: (val) => setState(() => _dados.renda = val),
+              ))
                   .toList(),
             ),
           ),
@@ -380,12 +394,12 @@ class _FormWizardState extends State<FormWizard> with TickerProviderStateMixin {
                 'Prefere não responder'
               ]
                   .map((e) => _buildRadioOption(
-                        title: e,
-                        value: e,
-                        groupValue: _dados.escolaridade,
-                        onChanged: (val) =>
-                            setState(() => _dados.escolaridade = val),
-                      ))
+                title: e,
+                value: e,
+                groupValue: _dados.escolaridade,
+                onChanged: (val) =>
+                    setState(() => _dados.escolaridade = val),
+              ))
                   .toList(),
             ),
           ),
@@ -476,12 +490,12 @@ class _FormWizardState extends State<FormWizard> with TickerProviderStateMixin {
             child: Column(
               children: ['Sim', 'Não', 'Parcialmente']
                   .map((e) => _buildRadioOption(
-                        title: e,
-                        value: e,
-                        groupValue: _dados.satisfacaoServicos,
-                        onChanged: (val) =>
-                            setState(() => _dados.satisfacaoServicos = val),
-                      ))
+                title: e,
+                value: e,
+                groupValue: _dados.satisfacaoServicos,
+                onChanged: (val) =>
+                    setState(() => _dados.satisfacaoServicos = val),
+              ))
                   .toList(),
             ),
           ),
@@ -509,18 +523,18 @@ class _FormWizardState extends State<FormWizard> with TickerProviderStateMixin {
                   'Infraestrutura',
                   'Meio ambiente',
                 ].map((e) => _buildCheckboxOption(
-                      title: e,
-                      value: _dados.problemas.contains(e),
-                      onChanged: (val) {
-                        setState(() {
-                          if (val == true) {
-                            _dados.problemas.add(e);
-                          } else {
-                            _dados.problemas.remove(e);
-                          }
-                        });
-                      },
-                    )),
+                  title: e,
+                  value: _dados.problemas.contains(e),
+                  onChanged: (val) {
+                    setState(() {
+                      if (val == true) {
+                        _dados.problemas.add(e);
+                      } else {
+                        _dados.problemas.remove(e);
+                      }
+                    });
+                  },
+                )),
                 Container(
                   margin: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                   child: TextFormField(
@@ -585,12 +599,12 @@ class _FormWizardState extends State<FormWizard> with TickerProviderStateMixin {
             child: Column(
               children: ['Sim', 'Não', 'Mais ou menos']
                   .map((e) => _buildRadioOption(
-                        title: e,
-                        value: e,
-                        groupValue: _dados.conhecePoliticos,
-                        onChanged: (val) =>
-                            setState(() => _dados.conhecePoliticos = val),
-                      ))
+                title: e,
+                value: e,
+                groupValue: _dados.conhecePoliticos,
+                onChanged: (val) =>
+                    setState(() => _dados.conhecePoliticos = val),
+              ))
                   .toList(),
             ),
           ),
@@ -645,7 +659,8 @@ class _FormWizardState extends State<FormWizard> with TickerProviderStateMixin {
                       activeColor: Color(0xFF6C63FF),
                       inactiveColor: Colors.grey[300],
                       label: '${(_dados.confianca ?? 5).toInt()}',
-                      onChanged: (val) => setState(() => _dados.confianca = val),
+                      onChanged: (val) =>
+                          setState(() => _dados.confianca = val),
                     ),
                   ),
                   SizedBox(height: 10),
@@ -737,11 +752,12 @@ class _FormWizardState extends State<FormWizard> with TickerProviderStateMixin {
             child: Column(
               children: ['Sim', 'Não', 'Não sei ainda']
                   .map((e) => _buildRadioOption(
-                        title: e,
-                        value: e,
-                        groupValue: _dados.vaiVotar,
-                        onChanged: (val) => setState(() => _dados.vaiVotar = val),
-                      ))
+                title: e,
+                value: e,
+                groupValue: _dados.vaiVotar,
+                onChanged: (val) =>
+                    setState(() => _dados.vaiVotar = val),
+              ))
                   .toList(),
             ),
           ),
@@ -769,12 +785,12 @@ class _FormWizardState extends State<FormWizard> with TickerProviderStateMixin {
                   'Benefícios diretos para a comunidade',
                   'Outro'
                 ].map((e) => _buildRadioOption(
-                      title: e,
-                      value: e,
-                      groupValue: _dados.influenciaVoto,
-                      onChanged: (val) =>
-                          setState(() => _dados.influenciaVoto = val),
-                    )),
+                  title: e,
+                  value: e,
+                  groupValue: _dados.influenciaVoto,
+                  onChanged: (val) =>
+                      setState(() => _dados.influenciaVoto = val),
+                )),
                 if (_dados.influenciaVoto == 'Outro')
                   Container(
                     margin: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -841,7 +857,8 @@ class _FormWizardState extends State<FormWizard> with TickerProviderStateMixin {
                     children: [
                       Column(
                         children: [
-                          Icon(Icons.sentiment_very_dissatisfied, color: Colors.grey[600]),
+                          Icon(Icons.sentiment_very_dissatisfied,
+                              color: Colors.grey[600]),
                           Text(
                             'Nenhum\ninteresse',
                             style: GoogleFonts.poppins(
@@ -854,7 +871,8 @@ class _FormWizardState extends State<FormWizard> with TickerProviderStateMixin {
                       ),
                       Column(
                         children: [
-                          Icon(Icons.sentiment_very_satisfied, color: Colors.grey[600]),
+                          Icon(Icons.sentiment_very_satisfied,
+                              color: Colors.grey[600]),
                           Text(
                             'Muito\ninteressado',
                             style: GoogleFonts.poppins(
@@ -878,7 +896,8 @@ class _FormWizardState extends State<FormWizard> with TickerProviderStateMixin {
                       activeColor: Color(0xFF6C63FF),
                       inactiveColor: Colors.grey[300],
                       label: '${(_dados.interesse ?? 5).toInt()}',
-                      onChanged: (val) => setState(() => _dados.interesse = val),
+                      onChanged: (val) =>
+                          setState(() => _dados.interesse = val),
                     ),
                   ),
                   SizedBox(height: 10),
@@ -983,7 +1002,8 @@ class _FormWizardState extends State<FormWizard> with TickerProviderStateMixin {
                       itemBuilder: (context, index) {
                         final p = politicos[index];
                         final selecionado =
-                            _dados.politicosConhecidos?.contains(p['nome']) ?? false;
+                            _dados.politicosConhecidos?.contains(p['nome']) ??
+                                false;
                         return Hero(
                           tag: 'politico-${p['nome']}',
                           child: GestureDetector(
@@ -991,7 +1011,8 @@ class _FormWizardState extends State<FormWizard> with TickerProviderStateMixin {
                               setState(() {
                                 _dados.politicosConhecidos ??= [];
                                 if (selecionado) {
-                                  _dados.politicosConhecidos!.remove(p['nome']!);
+                                  _dados.politicosConhecidos!
+                                      .remove(p['nome']!);
                                 } else {
                                   _dados.politicosConhecidos!.add(p['nome']!);
                                 }
@@ -1003,7 +1024,8 @@ class _FormWizardState extends State<FormWizard> with TickerProviderStateMixin {
                               ),
                               elevation: 8,
                               shadowColor: Colors.black26,
-                              margin: EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                              margin: EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 10),
                               child: Stack(
                                 alignment: Alignment.bottomLeft,
                                 children: [
@@ -1014,11 +1036,14 @@ class _FormWizardState extends State<FormWizard> with TickerProviderStateMixin {
                                       width: double.infinity,
                                       height: double.infinity,
                                       fit: BoxFit.cover,
-                                      loadingBuilder: (context, child, loadingProgress) {
-                                        if (loadingProgress == null) return child;
+                                      loadingBuilder:
+                                          (context, child, loadingProgress) {
+                                        if (loadingProgress == null)
+                                          return child;
                                         return Center(
                                           child: CircularProgressIndicator(
-                                            valueColor: AlwaysStoppedAnimation<Color>(
+                                            valueColor:
+                                            AlwaysStoppedAnimation<Color>(
                                               Color(0xFF6C63FF),
                                             ),
                                           ),
@@ -1046,7 +1071,8 @@ class _FormWizardState extends State<FormWizard> with TickerProviderStateMixin {
                                     ),
                                     child: Column(
                                       mainAxisSize: MainAxisSize.min,
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                      CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           p['nome']!,
@@ -1065,12 +1091,15 @@ class _FormWizardState extends State<FormWizard> with TickerProviderStateMixin {
                                         ),
                                         SizedBox(height: 12),
                                         Container(
-                                          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                          padding: EdgeInsets.symmetric(
+                                              horizontal: 16, vertical: 8),
                                           decoration: BoxDecoration(
-                                            color: selecionado 
-                                                ? Color(0xFF4CAF50).withOpacity(0.8) 
+                                            color: selecionado
+                                                ? Color(0xFF4CAF50)
+                                                .withOpacity(0.8)
                                                 : Colors.white.withOpacity(0.3),
-                                            borderRadius: BorderRadius.circular(30),
+                                            borderRadius:
+                                            BorderRadius.circular(30),
                                           ),
                                           child: Row(
                                             mainAxisSize: MainAxisSize.min,
@@ -1078,7 +1107,8 @@ class _FormWizardState extends State<FormWizard> with TickerProviderStateMixin {
                                               Icon(
                                                 selecionado
                                                     ? Icons.check_circle
-                                                    : Icons.radio_button_unchecked,
+                                                    : Icons
+                                                    .radio_button_unchecked,
                                                 color: selecionado
                                                     ? Colors.white
                                                     : Colors.white70,
@@ -1158,12 +1188,12 @@ class _FormWizardState extends State<FormWizard> with TickerProviderStateMixin {
             ),
             boxShadow: selected
                 ? [
-                    BoxShadow(
-                      color: Color(0xFF6C63FF).withOpacity(0.2),
-                      blurRadius: 10,
-                      offset: Offset(0, 4),
-                    )
-                  ]
+              BoxShadow(
+                color: Color(0xFF6C63FF).withOpacity(0.2),
+                blurRadius: 10,
+                offset: Offset(0, 4),
+              )
+            ]
                 : [],
           ),
           child: Row(
@@ -1175,17 +1205,16 @@ class _FormWizardState extends State<FormWizard> with TickerProviderStateMixin {
                   shape: BoxShape.circle,
                   color: selected ? Color(0xFF6C63FF) : Colors.white,
                   border: Border.all(
-                    color:
-                        selected ? Color(0xFF6C63FF) : Colors.grey[400]!,
+                    color: selected ? Color(0xFF6C63FF) : Colors.grey[400]!,
                     width: 2,
                   ),
                 ),
                 child: selected
                     ? Icon(
-                        Icons.check,
-                        size: 16,
-                        color: Colors.white,
-                      )
+                  Icons.check,
+                  size: 16,
+                  color: Colors.white,
+                )
                     : null,
               ),
               SizedBox(width: 16),
@@ -1227,12 +1256,12 @@ class _FormWizardState extends State<FormWizard> with TickerProviderStateMixin {
             ),
             boxShadow: value
                 ? [
-                    BoxShadow(
-                      color: Color(0xFF6C63FF).withOpacity(0.2),
-                      blurRadius: 10,
-                      offset: Offset(0, 4),
-                    )
-                  ]
+              BoxShadow(
+                color: Color(0xFF6C63FF).withOpacity(0.2),
+                blurRadius: 10,
+                offset: Offset(0, 4),
+              )
+            ]
                 : [],
           ),
           child: Row(
@@ -1250,10 +1279,10 @@ class _FormWizardState extends State<FormWizard> with TickerProviderStateMixin {
                 ),
                 child: value
                     ? Icon(
-                        Icons.check,
-                        size: 16,
-                        color: Colors.white,
-                      )
+                  Icons.check,
+                  size: 16,
+                  color: Colors.white,
+                )
                     : null,
               ),
               SizedBox(width: 16),
@@ -1335,7 +1364,8 @@ class _FormWizardState extends State<FormWizard> with TickerProviderStateMixin {
                     TextButton.icon(
                       onPressed: _paginaAnterior,
                       style: TextButton.styleFrom(
-                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        padding:
+                        EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       ),
                       icon: Icon(
                         Icons.arrow_back_rounded,
@@ -1357,7 +1387,8 @@ class _FormWizardState extends State<FormWizard> with TickerProviderStateMixin {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Color(0xFF6C63FF),
                       foregroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                      padding:
+                      EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -1367,7 +1398,9 @@ class _FormWizardState extends State<FormWizard> with TickerProviderStateMixin {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          _paginaAtual == totalPerguntas - 1 ? 'Enviar' : 'Próximo',
+                          _paginaAtual == totalPerguntas - 1
+                              ? 'Enviar'
+                              : 'Próximo',
                           style: GoogleFonts.poppins(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,

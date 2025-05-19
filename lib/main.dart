@@ -1,23 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:formulario_eleicao/screens/formulario_page.dart';
+import 'screens/login_page.dart';
+import 'services/token_service.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final token = await TokenService.getToken();
+  runApp(MyApp(initialToken: token));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final String? initialToken;
+  
+  const MyApp({super.key, this.initialToken});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
+      debugShowCheckedModeBanner: false, 
       title: 'Pesquisa eleitoral',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueAccent),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
       ),
-      home: FormularioPage(),
+      home: initialToken != null ? FormularioPage() : LoginPage(),
     );
   }
 }

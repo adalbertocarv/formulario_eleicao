@@ -31,7 +31,7 @@ class FormularioData {
       'conhece_politicos': conhecePoliticos,
       'confianca': confianca,
       'politicos_conhecidos': politicosConhecidos?.join(', '),
-      'vai_votar': vaiVotar,
+      'vai_votar': vaiVotar == 'Sim',
       'influencia_voto': influenciaVoto == 'Outro' ? influenciaOutro : influenciaVoto,
       'interesse': interesse,
       'opiniao': opiniaoLivre,
